@@ -39,7 +39,7 @@ def scrape_nba_data():
             print(f'Finished scraping data for the {y} {s}')
             lag = np.random.uniform(low=4, high=30)
             print(f'... waiting {round(lag, 1)} seconds.')
-            #time.sleep(lag)
+            time.sleep(lag)
     
     print(f'Process completed. Total runtime: {round((time.time() - begin_loop) / 60, 2)} minutes.')
     

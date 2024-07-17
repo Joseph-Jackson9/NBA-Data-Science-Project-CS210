@@ -1,7 +1,6 @@
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import plotly.figure_factory as ff
 
 def visualize_nba_data(input_file='tools/nba_player_data_cleaned.xlsx'):
     # Load the cleaned data
@@ -35,112 +34,69 @@ def visualize_nba_data(input_file='tools/nba_player_data_cleaned.xlsx'):
     # Drop the PLAYER_ID column
     data_per_min.drop(columns='PLAYER_ID', inplace=True)
     
-    # Select only numeric columns for correlation
-    numeric_cols = data_per_min.select_dtypes(include=['float64', 'int64'])
-    
-    # Plot the correlation matrix
-    fig = px.imshow(numeric_cols.corr(), text_auto=True)
-    fig.update_layout(title='Correlation Matrix of Player Statistics')
-    fig.show()
-    
-    # Plot the histogram of Minutes per Game in Regular Season
-    fig = px.histogram(x=rs_df['MIN'], nbins=30)
-    fig.update_layout(
-        xaxis_title='Minutes Played',
-        yaxis_title='Count of Players',
-        title='Distribution of Minutes Played in Regular Season'
-    )
-    fig.show()
-
-    def hist_data(df=rs_df, min_MIN=0, min_GP=0):
-        return df.loc[(df['MIN'] >= min_MIN) & (df['GP'] >= min_GP), 'MIN'] / \
-               df.loc[(df['MIN'] >= min_MIN) & (df['GP'] >= min_GP), 'GP']
-    
-    # Create the figure for comparison between Regular Season and Playoffs
-    fig = go.Figure()
-    
-    # Add the Regular Season histogram
-    fig.add_trace(go.Histogram(
-        x=hist_data(rs_df, 50, 5), 
-        histnorm='percent', 
-        name='Regular Season',
-        xbins={'start': 0, 'end': 46, 'size': 1}
-    ))
-    
-    # Add the Playoffs histogram
-    fig.add_trace(go.Histogram(
-        x=hist_data(playoffs_df, 5, 1), 
-        histnorm='percent', 
-        name='Playoffs',
-        xbins={'start': 0, 'end': 46, 'size': 1}
-    ))
-    
-    # Update the layout to overlay the histograms and set the opacity
-    fig.update_layout(
-        barmode='overlay',
-        xaxis_title='Minutes per Game',
-        yaxis_title='Percentage of Players',
-        title='Comparison of Minutes per Game: Regular Season vs Playoffs'
-    )
-    fig.update_traces(opacity=0.5)
-    
-    # Show the figure
-    fig.show()
-
-    # Scatter Plot of Points vs. Assists
-    fig = px.scatter(data, x='PTS', y='AST', color='Season_type', 
-                     title='Points vs Assists', labels={'PTS': 'Points', 'AST': 'Assists'})
-    fig.show()
-
-    # Box Plot of Points by Season Type
-    fig = px.box(data, x='Season_type', y='PTS', title='Distribution of Points by Season Type', 
-                 labels={'PTS': 'Points', 'Season_type': 'Season Type'})
-    fig.show()
-
-    # Heatmap of Player Performance Metrics
-    fig = px.imshow(numeric_cols.corr(), text_auto=True, title='Heatmap of Player Performance Metrics')
-    fig.show()
-
-    # Bar Chart of Top 10 Scorers
-    top_10_scorers = data.nlargest(10, 'PTS')
-    fig = px.bar(top_10_scorers, x='PLAYER', y='PTS', color='PTS', 
-                 title='Top 10 Scorers', labels={'PTS': 'Points'})
-    fig.show()
-
-    # Line Chart of Points Over Seasons for a specific player
-    player_name = 'LeBron James'  # Replace with the player's name of interest
-    player_data = data[data['PLAYER'] == player_name]
-    fig = px.line(player_data, x='season_start_year', y='PTS', title=f'Points Over Seasons for {player_name}',
-                  labels={'season_start_year': 'Season Start Year', 'PTS': 'Points'})
-    fig.show()
-
     # Radar Chart of Player Statistics
-    players = ['LeBron James', 'Stephen Curry', 'Kevin Durant']  # Replace with the players of interest
+    players = ['LeBron James', 'Stephen Curry', 'Kevin Durant']
     categories = ['PTS', 'REB', 'AST', 'STL', 'BLK']
 
     fig = go.Figure()
 
     for player in players:
-        player_stats = data[data['PLAYER'] == player][categories].mean()
+        player_stats = data_per_min[data_per_min['PLAYER'] == player][categories].mean()
         fig.add_trace(go.Scatterpolar(
             r=player_stats,
             theta=categories,
             fill='toself',
-            name=player
+            name=player,
+            mode='markers+lines'
         ))
 
+    # Update layout for better readability
     fig.update_layout(
         polar=dict(
-            radialaxis=dict(visible=True)
+            radialaxis=dict(
+                visible=True,
+                range=[0, data_per_min[categories].max().max()]  # Adjust range based on actual data
+            )
         ),
-        title='Radar Chart of Player Statistics'
+        title='Radar Chart of Player Statistics (Per-Minute Stats)',
+        showlegend=True
     )
 
     fig.show()
 
+    # Scatter Plot of Points vs. Assists
+    fig = px.scatter(data, x='PTS', y='AST', color='Season_type', 
+                     title='Points vs Assists (Per-Minute Stats)', labels={'PTS': 'Points', 'AST': 'Assists'})
+    fig.show()
+
+    # Box Plot of Points by Season Type
+    fig = px.box(data, x='Season_type', y='PTS', title='Distribution of Points by Season Type (Per-Minute Stats)', 
+                 labels={'PTS': 'Points', 'Season_type': 'Season Type'})
+    fig.show()
+
+    # Heatmap of Player Performance Metrics
+    numeric_cols = data_per_min.select_dtypes(include=['float64', 'int64'])
+    fig = px.imshow(numeric_cols.corr(), text_auto=True, title='Heatmap of Player Performance Metrics (Per-Minute Stats)')
+    fig.show()
+
+    # Bar Chart of Top 10 Scorers
+    top_10_scorers = data.nlargest(10, 'PTS')
+    fig = px.bar(top_10_scorers, x='PLAYER', y='PTS', color='PTS', 
+                 title='Top 10 Scorers (Per-Minute Stats)', labels={'PTS': 'Points'})
+    fig.show()
+
+    # Line Chart of Points Over Seasons for a specific player
+    player_name = 'LeBron James'  # Replace with the player's name of interest
+    player_data = data[data['PLAYER'] == player_name]
+    fig = px.line(player_data, x='season_start_year', y='PTS', title=f'Points Over Seasons for {player_name} (Per-Minute Stats)',
+                  labels={'season_start_year': 'Season Start Year', 'PTS': 'Points'})
+    fig.show()
+
+    
+
     # Violin Plot of Minutes Played by Season Type
     fig = px.violin(data, x='Season_type', y='MIN', box=True, points='all', 
-                    title='Minutes Played by Season Type', labels={'MIN': 'Minutes', 'Season_type': 'Season Type'})
+                    title='Minutes Played by Season Type (Per-Minute Stats)', labels={'MIN': 'Minutes', 'Season_type': 'Season Type'})
     fig.show()
 
     # Pie Chart of Shot Distribution
